@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Prosta mapa OSM</title>
+
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+        #map {
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // Inicjalizacja mapy
+    var map = L.map('map').setView([52.2297, 21.0122], 13); // Warszawa
+
+    // Warstwa OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // =====================
+    // 1. Pinezka z własną ikoną
+    // =====================
+
+    var customIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // <- zmień ikonę tutaj
+        iconSize: [40, 40],   // rozmiar
+        iconAnchor: [20, 40]  // punkt zaczepienia
+    });
+
+    L.marker([52.2297, 21.0122], { icon: customIcon })
+        .addTo(map)
+        .bindPopup("Moja pinezka");
+
+    // =====================
+    // 2. Ścieżka (polyline)
+    // =====================
+
+    var path = L.polyline([
+        [52.2297, 21.0122],
+        [52.23, 21.02],
+        [52.235, 21.03]
+    ], {
+        color: 'red' // <- zmień kolor ścieżki
+    }).addTo(map);
+
+    // =====================
+    // 3. Wielokąt (polygon)
+    // =====================
+
+    var polygon = L.polygon([
+        [52.22, 21.00],
+        [52.22, 21.02],
+        [52.21, 21.03],
+        [52.20, 21.01]
+    ], {
+        color: 'blue',     // kolor obramowania
+        fillColor: 'cyan', // kolor wypełnienia
+        fillOpacity: 0.4
+    }).addTo(map);
+
+</script>
+
+</body>
+</html>
