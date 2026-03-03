@@ -1,84 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="pl">
 <head>
-    <meta charset="utf-8" />
-    <title>Prosta mapa OSM</title>
+<meta charset="utf-8" />
+<title>Mapa działek</title>
 
-    <!-- Leaflet CSS -->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
+<link rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;       /* usuwa domyślny margines */
-            padding: 0;
-        }
-
-        #map {
-            height: 100%;
-            width: 100%;
-        }
-    </style>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+#map {
+    width: 100%;
+    height: 100%;
+}
+</style>
 </head>
 <body>
 
 <div id="map"></div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Inicjalizacja mapy
-    var map = L.map('map').setView([52.2297, 21.0122], 13); // Warszawa
+// =============================
+// 1. Odczyt parametrów z URL
+// =============================
+const params = new URLSearchParams(window.location.search);
+const file = params.get("file");
+const idDzialki = params.get("idDzialki");
 
-    // Warstwa OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+// =============================
+// 2. Inicjalizacja mapy
+// =============================
+const map = L.map('map').setView([52.1, 19.4], 6);
 
-    // =====================
-    // 1. Pinezka z własną ikoną
-    // =====================
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
+}).addTo(map);
 
-    var customIcon = L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // <- zmień ikonę tutaj
-        iconSize: [40, 40],   // rozmiar
-        iconAnchor: [20, 40]  // punkt zaczepienia
+// =============================
+// 3. Budowa URL do PHP
+// =============================
+let apiUrl = "gml2geojson.php";
+
+if (file || idDzialki) {
+    const forwardParams = new URLSearchParams();
+    if (file) forwardParams.set("file", file);
+    if (idDzialki) forwardParams.set("idDzialki", idDzialki);
+    apiUrl += "?" + forwardParams.toString();
+}
+
+// =============================
+// 4. Pobranie GeoJSON
+// =============================
+fetch(apiUrl)
+    .then(response => response.json())
+    .then(data => {
+
+        const geoLayer = L.geoJSON(data, {
+            style: {
+                color: "#ff0000",
+                weight: 2,
+                fillOpacity: 0.1
+            }
+        }).addTo(map);
+
+        // Auto-zoom do działek
+        if (geoLayer.getBounds().isValid()) {
+            map.fitBounds(geoLayer.getBounds());
+        }
+    })
+    .catch(err => {
+        console.error("Błąd ładowania GeoJSON:", err);
     });
-
-    L.marker([52.2297, 21.0122], { icon: customIcon })
-        .addTo(map)
-        .bindPopup("Moja pinezka");
-
-    // =====================
-    // 2. Ścieżka (polyline)
-    // =====================
-
-    var path = L.polyline([
-        [52.2297, 21.0122],
-        [52.23, 21.02],
-        [52.235, 21.03]
-    ], {
-        color: 'red' // <- zmień kolor ścieżki
-    }).addTo(map);
-
-    // =====================
-    // 3. Wielokąt (polygon)
-    // =====================
-
-    var polygon = L.polygon([
-        [52.22, 21.00],
-        [52.22, 21.02],
-        [52.21, 21.03],
-        [52.20, 21.01]
-    ], {
-        color: 'blue',     // kolor obramowania
-        fillColor: 'cyan', // kolor wypełnienia
-        fillOpacity: 0.4
-    }).addTo(map);
 
 </script>
 
