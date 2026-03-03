@@ -117,7 +117,7 @@ foreach ($xml->xpath('//rcw:RCN_Dzialka') as $d) {
     $ring = [];
     foreach ($d->xpath('.//gml:pos') as $pos) {
         $parts = preg_split('/\s+/', trim((string)$pos));
-        $ring[] = epsg2178_to_wgs84((float)$parts[0], (float)$parts[1]);
+        $ring[] = [(float)$parts[1], (float)$parts[0]];
     }
 
     $dzialki[$gid] = [
