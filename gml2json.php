@@ -45,6 +45,51 @@ function epsg2178_to_wgs84($x, $y)
     return [rad2deg($lon), rad2deg($lat)]; // GeoJSON = [lon, lat]
 }
 
+function xmlToArray(SimpleXMLElement $xml)
+{
+    $result = [];
+
+    // Atrybuty (wszystkie namespace)
+    foreach ($xml->getNamespaces(true) as $prefix => $ns) {
+        foreach ($xml->attributes($ns, true) as $attrName => $attr) {
+            $result["@attributes"][$prefix . ":" . $attrName] = (string)$attr;
+        }
+    }
+    foreach ($xml->attributes() as $attrName => $attr) {
+        $result["@attributes"][$attrName] = (string)$attr;
+    }
+
+    // Dzieci
+    foreach ($xml->getNamespaces(true) as $prefix => $ns) {
+        foreach ($xml->children($ns) as $childName => $child) {
+
+            $key = $prefix ? "$prefix:$childName" : $childName;
+            $value = xmlToArray($child);
+
+            if (isset($result[$key])) {
+                if (!is_array($result[$key]) || !isset($result[$key][0])) {
+                    $result[$key] = [$result[$key]];
+                }
+                $result[$key][] = $value;
+            } else {
+                $result[$key] = $value;
+            }
+        }
+    }
+
+    // Wartość tekstowa
+    $text = trim((string)$xml);
+    if ($text !== '') {
+        if (!empty($result)) {
+            $result["_value"] = $text;
+        } else {
+            $result = $text;
+        }
+    }
+
+    return $result;
+}
+
 /* -----------------------
    XML
 ----------------------- */
@@ -100,8 +145,7 @@ foreach ($xml->xpath('//rcw:RCN_Nieruchomosc') as $n) {
         $dzRefs[] = (string)$dz->attributes('xlink', true)->href;
     }
 
-    $data = json_decode(json_encode($n), true);
-    unset($data['@attributes']); // usuń gml:id
+    $data = xmlToArray($n);
 
     $nieruchomosci[$nid] = [
         "data" => $data,
@@ -114,7 +158,7 @@ foreach ($xml->xpath('//rcw:RCN_Nieruchomosc') as $n) {
 ----------------------- */
 foreach ($xml->xpath('//rcw:RCN_Dokument') as $d) {
     $did = (string)$d->attributes('gml', true)->id;
-    $dokumenty[$did] = json_decode(json_encode($d), true);
+    $dokumenty[$did] = xmlToArray($d);
 }
 
 /* -----------------------
@@ -130,8 +174,7 @@ foreach ($xml->xpath('//rcw:RCN_Transakcja') as $t) {
         $nierRefs[] = (string)$nr->attributes('xlink', true)->href;
     }
 
-    $tData = json_decode(json_encode($t), true);
-    unset($tData['@attributes']);
+    $tData = xmlToArray($t);
 
     foreach ($nierRefs as $nrid) {
 
