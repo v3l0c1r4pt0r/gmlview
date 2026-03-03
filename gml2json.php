@@ -1,21 +1,21 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-// ----------------------
-// PARAMETRY WEJŚCIOWE
-// ----------------------
+if (php_sapi_name() === 'cli') {
+    parse_str(implode('&', array_slice($argv, 1)), $_GET);
+}
+
 $file = $_GET['file'] ?? null;
-$filterId = $_GET['idDzialki'] ?? null;
+$filter = $_GET['idDzialki'] ?? null;
 
 if (!$file || !file_exists($file)) {
     echo json_encode(["error" => "Brak pliku"]);
     exit;
 }
 
-// ----------------------
-// FUNKCJA: EPSG 2178 → 4326
-// (PUWG 1992)
-// ----------------------
+/* -----------------------
+   EPSG:2178 → WGS84
+----------------------- */
 function epsg2178_to_wgs84($x, $y)
 {
     $a = 6378137.0;
@@ -39,97 +39,121 @@ function epsg2178_to_wgs84($x, $y)
     $R1 = $a*(1-$e2)/pow(1-$e2*pow(sin($phi1),2),1.5);
     $D = $x/($N1*$k0);
 
-    $lat = $phi1 - ($N1*tan($phi1)/$R1) *
-        ($D*$D/2);
-
+    $lat = $phi1 - ($N1*tan($phi1)/$R1)*($D*$D/2);
     $lon = $lon0 + ($D - (1+2*$T1+$C1)*pow($D,3)/6)/cos($phi1);
 
-    return [rad2deg($lat), rad2deg($lon)];
+    return [rad2deg($lon), rad2deg($lat)]; // GeoJSON = [lon, lat]
 }
 
-// ----------------------
-// WCZYTANIE XML
-// ----------------------
+/* -----------------------
+   XML
+----------------------- */
 $xml = simplexml_load_file($file);
 $xml->registerXPathNamespace('gml', 'http://www.opengis.net/gml/3.2');
 $xml->registerXPathNamespace('rcw', 'urn:gugik:specyfikacje:gmlas:rejestrcennieruchomosci:1.0');
 
-// ----------------------
-// MAPY OBIEKTÓW
-// ----------------------
+/* -----------------------
+   Mapy obiektów
+----------------------- */
 $dzialki = [];
 $nieruchomosci = [];
-$transakcje = [];
 $dokumenty = [];
 
-// DZIAŁKI
+/* -----------------------
+   DZIAŁKI
+----------------------- */
 foreach ($xml->xpath('//rcw:RCN_Dzialka') as $d) {
+
     $gid = (string)$d->attributes('gml', true)->id;
     $idDzialki = (string)$d->xpath('rcw:idDzialki')[0];
 
-    if ($filterId && $filterId !== $idDzialki) continue;
+    if ($filter && !str_starts_with($idDzialki, $filter)) continue;
 
-    $coords = [];
+    $ring = [];
     foreach ($d->xpath('.//gml:pos') as $pos) {
         $parts = preg_split('/\s+/', trim((string)$pos));
-        list($lat, $lon) = epsg2178_to_wgs84((float)$parts[0], (float)$parts[1]);
-        $coords[] = [$lat, $lon];
+        $ring[] = epsg2178_to_wgs84((float)$parts[0], (float)$parts[1]);
     }
 
     $dzialki[$gid] = [
-        "idDzialki" => $idDzialki,
-        "geometria" => $coords,
-        "transakcje" => []
+        "type" => "Feature",
+        "geometry" => [
+            "type" => "Polygon",
+            "coordinates" => [$ring]
+        ],
+        "properties" => [
+            "idDzialki" => $idDzialki,
+            "transakcje" => []
+        ]
     ];
 }
 
-// NIERUCHOMOŚCI
+/* -----------------------
+   NIERUCHOMOŚCI
+----------------------- */
 foreach ($xml->xpath('//rcw:RCN_Nieruchomosc') as $n) {
+
     $nid = (string)$n->attributes('gml', true)->id;
-    $refs = [];
+
+    $dzRefs = [];
     foreach ($n->xpath('rcw:dzialka') as $dz) {
-        $href = (string)$dz->attributes('xlink', true)->href;
-        $refs[] = $href;
+        $dzRefs[] = (string)$dz->attributes('xlink', true)->href;
     }
+
+    $data = json_decode(json_encode($n), true);
+    unset($data['@attributes']); // usuń gml:id
+
     $nieruchomosci[$nid] = [
-        "data" => json_decode(json_encode($n), true),
-        "dzialki" => $refs
+        "data" => $data,
+        "dzialki" => $dzRefs
     ];
 }
 
-// DOKUMENTY
+/* -----------------------
+   DOKUMENTY
+----------------------- */
 foreach ($xml->xpath('//rcw:RCN_Dokument') as $d) {
     $did = (string)$d->attributes('gml', true)->id;
     $dokumenty[$did] = json_decode(json_encode($d), true);
 }
 
-// TRANSAKCJE
+/* -----------------------
+   TRANSAKCJE
+----------------------- */
 foreach ($xml->xpath('//rcw:RCN_Transakcja') as $t) {
-    $tid = (string)$t->attributes('gml', true)->id;
 
-    $docRef = (string)$t->xpath('rcw:podstawaPrawna')[0]->attributes('xlink', true)->href;
+    $docRef = (string)$t->xpath('rcw:podstawaPrawna')[0]
+        ->attributes('xlink', true)->href;
 
     $nierRefs = [];
     foreach ($t->xpath('rcw:nieruchomosc') as $nr) {
         $nierRefs[] = (string)$nr->attributes('xlink', true)->href;
     }
 
+    $tData = json_decode(json_encode($t), true);
+    unset($tData['@attributes']);
+
     foreach ($nierRefs as $nrid) {
+
         if (!isset($nieruchomosci[$nrid])) continue;
 
-        foreach ($nieruchomosci[$nrid]["dzialki"] as $dzid) {
+        foreach ($nieruchomosci[$nrid]['dzialki'] as $dzid) {
+
             if (!isset($dzialki[$dzid])) continue;
 
-            $dzialki[$dzid]["transakcje"][] = [
-                "transakcja" => json_decode(json_encode($t), true),
-                "nieruchomosc" => $nieruchomosci[$nrid]["data"],
+            $dzialki[$dzid]['properties']['transakcje'][] = [
+                "transakcja" => $tData,
+                "nieruchomosc" => $nieruchomosci[$nrid]['data'],
                 "dokument" => $dokumenty[$docRef] ?? null
             ];
         }
     }
 }
 
-// OUTPUT
+/* -----------------------
+   OUTPUT GEOJSON
+----------------------- */
 echo json_encode([
-    "dzialki" => array_values($dzialki)
+    "type" => "FeatureCollection",
+    "features" => array_values($dzialki)
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
