@@ -31,7 +31,7 @@ html, body {
 proj4.defs("EPSG:2178",
  "+proj=tmerc +lat_0=0 +lon_0=21 +k=0.999923 +x_0=7500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs");
 
-async function fetchAndDrawMissingParcels(parcels, map) {
+async function fetchAndDrawMissingParcels(parcels, geoLayer) {
   for (const parcel of parcels) {
 
       try {
@@ -64,22 +64,26 @@ async function fetchAndDrawMissingParcels(parcels, map) {
         // zamieniamy na tablicę [lat, lon] dla Leaflet
         const coordinates = coordsRaw.split(",").map(pair => {
           const [lon, lat] = pair.trim().split(" ").map(Number);
-          return [lat, lon]; // Leaflet używa [lat, lon]
+          return [lon, lat]; // Leaflet używa [lat, lon]
+        });
+
+        feature = parcel;
+        geoLayer.addData({
+            type: "Feature",
+            properties: feature.properties, // ← to jest kluczowe
+            geometry: {
+                type: "Polygon",
+                coordinates: [coordinates]
+            }
         });
 
         // zapisz do obiektu
         parcel.geometry = coordinates;
 
-        // narysuj na mapie
-        L.polygon(coordinates, {
-          color: "red",
-          weight: 2
-        }).addTo(map);
-
-        console.log(`✔ Dorysowano działkę ${parcel.id}`);
+        console.log(`✔ Dorysowano działkę ${parcel.properties.idDzialki}`);
 
       } catch (err) {
-        console.error(`Błąd dla ${parcel.id}`, err);
+        console.error(`Błąd dla ${parcel.properties.idDzialki}`, err);
       }
   }
 }
@@ -139,6 +143,14 @@ fetch(apiUrl)
                 color: "#ff0000",
                 weight: 2,
                 fillOpacity: 0.1
+            },
+            onEachFeature: function (feature, layer) {
+
+                const parcelNumber =
+                    feature.properties.idDzialki ||
+                    "Brak numeru";
+
+                layer.bindPopup(`<b>Działka:</b> ${parcelNumber}`);
             }
         }).addTo(map);
 
