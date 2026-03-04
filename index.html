@@ -116,7 +116,17 @@ function getNieruchomoscText(nieruchomosc) {
 }
 
 function getTransakcjaText(transakcja) {
-  return ``;
+  return `
+  <table>
+  <tr><td>ID: <b>${transakcja['rcw:IdRCN']['rcw:RCN_IdentyfikatorIIP']['rcw:lokalnyId']}</b></td></tr>
+  <tr><td>Cena: <b>${transakcja['rcw:cenaTransakcjiBrutto']}</b></td></tr>
+  <tr><td>Oznaczenie: <b>${transakcja['rcw:oznaczenieTransakcji']}</b></td></tr>
+  <tr><td>Podstawa prawna: <b>${transakcja['rcw:podstawaPrawna']}</b></td></tr>
+  <tr><td>Rodzaj: <b>${transakcja['rcw:rodzajTransakcji']}</b></td></tr>
+  <tr><td>Kupujący: <b>${transakcja['rcw:stronaKupujaca']}</b></td></tr>
+  <tr><td>Sprzedający: <b>${transakcja['rcw:stronaSprzedajaca']}</b></td></tr>
+  </table>
+  `;
 }
 
 function getTransactionText(transaction) {
