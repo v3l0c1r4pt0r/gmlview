@@ -203,7 +203,7 @@ fetch(apiUrl)
         );
 
         // 🔹 Odpalamy w tle (bez await!)
-        if (missingParcels.length > 0) {
+        if (missingParcels.length > 0 && params.get("fetch") != 0) {
             fetchAndDrawMissingParcels(missingParcels, geoLayer);
         }
 
