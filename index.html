@@ -88,12 +88,43 @@ async function fetchAndDrawMissingParcels(parcels, geoLayer) {
   }
 }
 
+function getDokumentText(dokument) {
+  return ``;
+}
+
+function getNieruchomoscText(nieruchomosc) {
+  return ``;
+}
+
+function getTransakcjaText(transakcja) {
+  return ``;
+}
+
+function getTransactionText(transaction) {
+  return `
+  <h2>Dokument</h2>
+  ${getDokumentText(transaction.dokument)}
+  <h2>Nieruchomość</h2>
+  ${getNieruchomoscText(transaction.nieruchomosc)}
+  <h2>Transakcja</h2>
+  ${getTransakcjaText(transaction.transakcja)}
+  `;
+}
+
 function getPopupText(properties) {
     const parcelNumber =
       properties.idDzialki ||
       "Brak numeru";
 
-    return `<b>Działka:</b> ${parcelNumber}`;
+    transactions = '';
+
+    for (const transaction of properties.transakcje) {
+      transactions += getTransactionText(transaction);
+    }
+
+    return `<h1>${parcelNumber}</h1>\
+    ${transactions}
+    `;
 }
 
 // =============================
