@@ -99,7 +99,20 @@ function getDokumentText(dokument) {
 }
 
 function getNieruchomoscText(nieruchomosc) {
-  return ``;
+  budynek = 0;
+  if (nieruchomosc.hasOwnProperty('rcw:budynek')) {
+      budynek = nieruchomosc['rcw:budynek'].length;
+  }
+  return `
+  <table>
+  <tr><td>Budynki: <b>${budynek}</b></td></tr>
+  <tr><td>Cena: <b>${nieruchomosc['rcw:cenaNieruchomosciBrutto']}</b></td></tr>
+  <tr><td>Pole [${nieruchomosc['rcw:polePowierzchniNieruchomosciGruntowej']['@attributes'].uom}]: <b>${nieruchomosc['rcw:polePowierzchniNieruchomosciGruntowej']._value}</b></td></tr>
+  <tr><td>Rodzaj: <b>${nieruchomosc['rcw:rodzajNieruchomosci']}</b></td></tr>
+  <tr><td>Rodzaj prawa: <b>${nieruchomosc['rcw:rodzajPrawaDoNieruchomosci']}</b></td></tr>
+  <tr><td>Udział: <b>${nieruchomosc['rcw:udzialWPrawieDoNieruchomosci']}</b></td></tr>
+  </table>
+  `;
 }
 
 function getTransakcjaText(transakcja) {
