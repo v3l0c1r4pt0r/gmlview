@@ -89,7 +89,13 @@ async function fetchAndDrawMissingParcels(parcels, geoLayer) {
 }
 
 function getDokumentText(dokument) {
-  return ``;
+  return `
+  <table>
+  <tr><td>Data sporządzenia: <b>${dokument['rcw:dataSporzadzeniaDokumentu']}</b></td></tr>
+  <tr><td>Oznaczenie: <b>${dokument['rcw:oznaczenieDokumentu']}</b></td></tr>
+  <tr><td>Twórca: <b>${dokument['rcw:tworcaDokumentu']}</b></td></tr>
+  </table>
+  `;
 }
 
 function getNieruchomoscText(nieruchomosc) {
