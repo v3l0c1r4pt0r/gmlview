@@ -102,11 +102,12 @@ function getTransakcjaText(transakcja) {
 
 function getTransactionText(transaction) {
   return `
-  <h2>Dokument</h2>
+  <h2>Transakcja z dnia ${transaction.dokument['rcw:dataSporzadzeniaDokumentu']}</h2>
+  <h3>Dokument</h3>
   ${getDokumentText(transaction.dokument)}
-  <h2>Nieruchomość</h2>
+  <h3>Nieruchomość</h3>
   ${getNieruchomoscText(transaction.nieruchomosc)}
-  <h2>Transakcja</h2>
+  <h3>Transakcja</h3>
   ${getTransakcjaText(transaction.transakcja)}
   `;
 }
