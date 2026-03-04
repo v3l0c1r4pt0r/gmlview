@@ -88,6 +88,14 @@ async function fetchAndDrawMissingParcels(parcels, geoLayer) {
   }
 }
 
+function getPopupText(properties) {
+    const parcelNumber =
+      properties.idDzialki ||
+      "Brak numeru";
+
+    return `<b>Działka:</b> ${parcelNumber}`;
+}
+
 // =============================
 // 1. Odczyt parametrów z URL
 // =============================
@@ -146,11 +154,7 @@ fetch(apiUrl)
             },
             onEachFeature: function (feature, layer) {
 
-                const parcelNumber =
-                    feature.properties.idDzialki ||
-                    "Brak numeru";
-
-                layer.bindPopup(`<b>Działka:</b> ${parcelNumber}`);
+                layer.bindPopup(getPopupText(feature.properties));
             }
         }).addTo(map);
 
