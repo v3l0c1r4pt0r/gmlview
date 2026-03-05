@@ -7,4 +7,4 @@ VOLUME /app
 
 EXPOSE 80
 
-CMD ["php", "-S", "0.0.0.0:80", "-t", "/app"]
+CMD ["sh", "-c", "ip addr | grep inet && php -S 0.0.0.0:80 -t /app"]
