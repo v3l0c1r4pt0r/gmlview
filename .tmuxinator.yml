@@ -1,0 +1,7 @@
+name: rcn
+root: .
+
+windows:
+  - vim: vim -S session.vim
+  - git: git status
+  - dev: php -S localhost:8000
