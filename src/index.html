@@ -21,6 +21,15 @@ html, body {
 </head>
 <body>
 
+<div id="search">
+  <form action="/" method="GET">
+    GML: <input type="text" id="plik" name="plik" value="gml/0101.gml"/>
+    TERYT: <input type="text" id="filtr" name="filtr" value="010101.0001"/>
+    Fetch: <input type="checkbox" id="filtr" name="fetch" value="1" />
+    <input type="submit" value="Wyświetl">
+  </form>
+</div>
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -161,8 +170,14 @@ function getPopupText(properties) {
 // 1. Odczyt parametrów z URL
 // =============================
 const params = new URLSearchParams(window.location.search);
-const file = params.get("file");
-const idDzialki = params.get("idDzialki");
+const file = params.get("plik");
+const idDzialki = params.get("filtr");
+
+// set search criteria to currently used
+value_of_fetch = params.get("fetch");
+value_of_plik = params.get("plik");
+value_of_filtr = params.get("filtr");
+
 
 // =============================
 // 2. Inicjalizacja mapy
@@ -232,7 +247,7 @@ fetch(apiUrl)
         );
 
         // 🔹 Odpalamy w tle (bez await!)
-        if (missingParcels.length > 0 && params.get("fetch") != 0) {
+        if (missingParcels.length > 0 && params.get("fetch") == 1) {
             fetchAndDrawMissingParcels(missingParcels, geoLayer);
         }
 
@@ -246,6 +261,26 @@ fetch(apiUrl)
     .catch(err => {
         console.error("Błąd ładowania GeoJSON:", err);
     });
+
+document.addEventListener("DOMContentLoaded", function () {
+  const params = new URLSearchParams(window.location.search);
+
+  const value_of_plik = params.get("plik");
+  const value_of_filtr = params.get("filtr");
+  const value_of_fetch = params.get("fetch");
+
+  if (value_of_plik !== null) {
+    document.getElementById("plik").value = value_of_plik;
+  }
+
+  if (value_of_filtr !== null) {
+    document.getElementById("filtr").value = value_of_filtr;
+  }
+
+  if (value_of_fetch == "1") {
+    document.querySelector('input[name="fetch"]').checked = true;
+  }
+});
 
 </script>
 
